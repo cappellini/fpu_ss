@@ -1,3 +1,5 @@
+
 [submodule "fpnew"]
 	path = fpnew
-	url = https://github.com/pulp-platform/fpnew
+	url = https://github.com/cappellini/fpnew.git
+	branch = feature/expanding_dotp
