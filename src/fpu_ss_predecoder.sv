@@ -1,4 +1,4 @@
-// Copyright 2022 ETH Zurich and University of Bologna.
+// Copyright 2022 ETH Zurich.
 // Copyright and related rights are licensed under the Solderpad Hardware
 // License, Version 0.51 (the "License"); you may not use this file except in
 // compliance with the License.  You may obtain a copy of the License at
@@ -9,46 +9,96 @@
 // specific language governing permissions and limitations under the License.
 //
 // FPU Subsystem Predecoder
-// Contributor: Noam Gallmann <gnoam@live.com>
-//              Moritz Imfeld <moimfeld@student.eth.ch>
+// Contributor: Fabio Cappellini <fcappellini@ethz.ch>
 
 
-module fpu_ss_predecoder #(
-    parameter int                       NumInstr               = 1,
-    parameter fpu_ss_pkg::offload_instr_t  OffloadInstr[NumInstr] = {0}
-) (
+
+module fpu_ss_predecoder (
     input  fpu_ss_pkg::acc_prd_req_t prd_req_i,
     output fpu_ss_pkg::acc_prd_rsp_t prd_rsp_o
 );
 
-  import fpu_ss_pkg::*;
-
-  acc_prd_rsp_t [NumInstr-1:0] instr_rsp;
-  logic         [NumInstr-1:0] instr_sel;
-
-  for (genvar i = 0; i < NumInstr; i++) begin : gen_predecoder_selector
-    assign instr_sel[i] =
-      ((OffloadInstr[i].instr_mask & prd_req_i.q_instr_data) == OffloadInstr[i].instr_data);
-  end
-
-  for (genvar i = 0; i < NumInstr; i++) begin : gen_predecoder_mux
-    assign instr_rsp[i].p_accept    = instr_sel[i] ? OffloadInstr[i].prd_rsp.p_accept : 1'b0;
-    assign instr_rsp[i].p_writeback = instr_sel[i] ? OffloadInstr[i].prd_rsp.p_writeback : 1'b0;
-    assign instr_rsp[i].p_is_mem_op = instr_sel[i] ? OffloadInstr[i].prd_rsp.p_is_mem_op : '0;
-    assign instr_rsp[i].p_use_rs    = instr_sel[i] ? OffloadInstr[i].prd_rsp.p_use_rs : '0;
-  end
-
   always_comb begin
     prd_rsp_o.p_accept    = 1'b0;
     prd_rsp_o.p_writeback = 1'b0;
-    prd_rsp_o.p_is_mem_op = '0;
-    prd_rsp_o.p_use_rs    = '0;
-    for (int unsigned i = 0; i < NumInstr; i++) begin
-      prd_rsp_o.p_accept    |= instr_rsp[i].p_accept;
-      prd_rsp_o.p_writeback |= instr_rsp[i].p_writeback;
-      prd_rsp_o.p_is_mem_op |= instr_rsp[i].p_is_mem_op;
-      prd_rsp_o.p_use_rs    |= instr_rsp[i].p_use_rs;
-    end
+    prd_rsp_o.p_is_mem_op = 1'b0;
+    prd_rsp_o.p_use_rs    = 3'b000;
+
+    unique casez (prd_req_i.q_instr_data)
+      fpu_ss_instr_pkg::FADD_S,
+      fpu_ss_instr_pkg::FSUB_S,
+      fpu_ss_instr_pkg::FMUL_S,
+      fpu_ss_instr_pkg::FDIV_S,
+      fpu_ss_instr_pkg::FSGNJ_S,
+      fpu_ss_instr_pkg::FSGNJN_S,
+      fpu_ss_instr_pkg::FSGNJX_S,
+      fpu_ss_instr_pkg::FMIN_S,
+      fpu_ss_instr_pkg::FMAX_S,
+      fpu_ss_instr_pkg::FSQRT_S,
+      fpu_ss_instr_pkg::FMADD_S,
+      fpu_ss_instr_pkg::FMSUB_S,
+      fpu_ss_instr_pkg::FNMSUB_S,
+      fpu_ss_instr_pkg::FNMADD_S: begin
+        prd_rsp_o.p_accept    = 1'b1;
+        prd_rsp_o.p_writeback = 1'b0;
+        prd_rsp_o.p_is_mem_op = 1'b0;
+        prd_rsp_o.p_use_rs    = 3'b000;
+      end
+
+      fpu_ss_instr_pkg::FLE_S,
+      fpu_ss_instr_pkg::FLT_S,
+      fpu_ss_instr_pkg::FEQ_S,
+      fpu_ss_instr_pkg::FCLASS_S,
+      fpu_ss_instr_pkg::FCVT_W_S,
+      fpu_ss_instr_pkg::FCVT_WU_S,
+      fpu_ss_instr_pkg::FMV_X_W,
+      fpu_ss_instr_pkg::CSRRWI_FSRMI,
+      fpu_ss_instr_pkg::CSRRWI_FSFLAGSI:
+      begin
+        prd_rsp_o.p_accept    = 1'b1;
+        prd_rsp_o.p_writeback = 1'b1;
+        prd_rsp_o.p_is_mem_op = 1'b0;
+        prd_rsp_o.p_use_rs    = 3'b000;
+      end
+
+      fpu_ss_instr_pkg::FMV_W_X,
+      fpu_ss_instr_pkg::FCVT_S_W,
+      fpu_ss_instr_pkg::FCVT_S_WU: begin
+        prd_rsp_o.p_accept    = 1'b1;
+        prd_rsp_o.p_writeback = 1'b0;
+        prd_rsp_o.p_is_mem_op = 1'b0;
+        prd_rsp_o.p_use_rs    = 3'b001;
+      end
+
+      fpu_ss_instr_pkg::FLW,
+      fpu_ss_instr_pkg::FSW: begin
+        prd_rsp_o.p_accept    = 1'b1;
+        prd_rsp_o.p_writeback = 1'b0;
+        prd_rsp_o.p_is_mem_op = 1'b1;
+        prd_rsp_o.p_use_rs    = 3'b001;
+      end
+
+      fpu_ss_instr_pkg::CSRRW_FSCSR,
+      fpu_ss_instr_pkg::CSRRS_FRCSR,
+      fpu_ss_instr_pkg::CSRRW_FSRM,
+      fpu_ss_instr_pkg::CSRRS_FRRM,
+      fpu_ss_instr_pkg::CSRRW_FSFLAGS,
+      fpu_ss_instr_pkg::CSRRS_FRFLAGS:
+      begin:
+        prd_rsp_o.p_accept    = 1'b1;
+        prd_rsp_o.p_writeback = 1'b1;
+        prd_rsp_o.p_is_mem_op = 1'b0;
+        prd_rsp_o.p_use_rs    = 3'b001;
+      end
+
+      default: begin
+        prd_rsp_o.p_accept    = 1'b0;
+        prd_rsp_o.p_writeback = 1'b0;
+        prd_rsp_o.p_is_mem_op = 1'b0;
+        prd_rsp_o.p_use_rs    = 3'b000;
+      end
+      
+    endcase
   end
 
 endmodule // fpu_ss_predecoder
