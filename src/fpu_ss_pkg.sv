@@ -176,10 +176,11 @@ package fpu_ss_pkg;
   parameter bit C_RVD = 1'b0;  // Is D extension enabled - NOT SUPPORTED CURRENTLY
 
   // Transprecision floating-point extensions configuration
-  parameter bit C_XF16 = 1'b0;  // Is half-precision float extension (Xf16) enabled
-  parameter bit C_XF16ALT = 1'b0; // Is alternative half-precision float extension (Xf16alt) enabled
-  parameter bit C_XF8 = 1'b0;  // Is quarter-precision float extension (Xf8) enabled
-  parameter bit C_XFVEC = 1'b0;  // Is vectorial float extension (Xfvec) enabled
+  parameter bit C_XF16 = 1'b1;  // Is half-precision float extension (Xf16) enabled
+  parameter bit C_XF16ALT = 1'b1; // Is alternative half-precision float extension (Xf16alt) enabled
+  parameter bit C_XF8 = 1'b1;  // Is quarter-precision float extension (Xf8) enabled
+  parameter bit C_XF8ALT = 1'b1;
+  parameter bit C_XFVEC = 1'b1;  // Is vectorial float extension (Xfvec) enabled
 
   // Latency of FP operations: 0 = no pipe registers, 1 = 1 pipe register etc.
   parameter int unsigned C_LAT_FP64 = 'd1; // set to 1 to mimic cv32e40p core internal
@@ -200,34 +201,43 @@ package fpu_ss_pkg;
   C_XF16ALT ? 16 :  // Xf16alt ext.
   C_XF8 ? 8 :  // Xf8 ext.
   0;  // Unused in case of no FP
+  
 
   // Features (enabled formats, vectors etc.)
-  parameter fpnew_pkg::fpu_features_t FPU_FEATURES = '{
-  Width:         fpu_ss_pkg::C_FLEN,
-  EnableVectors: fpu_ss_pkg::C_XFVEC,
-  EnableNanBox:  1'b0,
+  localparam fpnew_pkg::fpu_features_t FPU_FEATURES = '{
+  Width:         32,
+  EnableVectors: C_XFVEC,
+  EnableNanBox:  1'b1,
   FpFmtMask:     {
-    fpu_ss_pkg::C_RVF, fpu_ss_pkg::C_RVD, fpu_ss_pkg::C_XF16, fpu_ss_pkg::C_XF8, fpu_ss_pkg::C_XF16ALT
+    C_RVF, C_RVD, C_XF16, C_XF8, C_XF16ALT, C_XF8ALT
   }, IntFmtMask: {
-    fpu_ss_pkg::C_XFVEC && fpu_ss_pkg::C_XF8, fpu_ss_pkg::C_XFVEC && (fpu_ss_pkg::C_XF16 || fpu_ss_pkg::C_XF16ALT), 1'b1, 1'b0
+    C_XFVEC && (C_XF8 || C_XF8ALT), C_XFVEC && (C_XF16 || C_XF16ALT), 1'b1, 1'b0
   }};
 
   // Implementation (number of registers etc)
-  parameter fpnew_pkg::fpu_implementation_t FPU_IMPLEMENTATION = '{
-  PipeRegs:  '{// FP32, FP64, FP16, FP8, FP16alt
-      '{
-          fpu_ss_pkg::C_LAT_FP32, fpu_ss_pkg::C_LAT_FP64, fpu_ss_pkg::C_LAT_FP16, fpu_ss_pkg::C_LAT_FP8, fpu_ss_pkg::C_LAT_FP16ALT
-      },  // ADDMUL
-      '{default: fpu_ss_pkg::C_LAT_DIVSQRT},  // DIVSQRT
-      '{default: fpu_ss_pkg::C_LAT_NONCOMP},  // NONCOMP
-      '{default: fpu_ss_pkg::C_LAT_CONV}
-  },  // CONV
-  UnitTypes: '{
-      '{default: fpnew_pkg::MERGED},  // ADDMUL
-      '{default: fpnew_pkg::MERGED},  // DIVSQRT
-      '{default: fpnew_pkg::PARALLEL},  // NONCOMP
-      '{default: fpnew_pkg::MERGED}
-  },  // CONV
-  PipeConfig: fpnew_pkg::BEFORE};
+  localparam fpnew_pkg::fpu_implementation_t FPU_IMPLEMENTATION =
+  '{
+      PipeRegs: // FMA Block
+                '{
+                  '{  2, // FP32
+                      2, // FP64
+                      1, // FP16
+                      1, // FP8
+                      1, // FP16alt
+                      1  // FP8alt
+                    },
+                  '{default: 1},   // DIVSQRT
+                  '{default: 1},   // NONCOMP
+                  '{default: 1},   // CONV
+                  '{default: 2}    // DOTP
+                  },
+      UnitTypes: '{'{default: fpnew_pkg::MERGED},  // FMA
+                  '{default: fpnew_pkg::MERGED}, // DIVSQRT
+                  '{default: fpnew_pkg::PARALLEL}, // NONCOMP
+                  '{default: fpnew_pkg::MERGED},   // CONV
+                  '{default: fpnew_pkg::MERGED}},  // DOTP
+      PipeConfig: fpnew_pkg::BEFORE
+  };
+
 
 endpackage // fpu_ss_pkg

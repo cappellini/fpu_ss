@@ -624,6 +624,7 @@ module fpu_ss
       .op_i          (fpnew_pkg::operation_e'(fpu_op)),
       .op_mod_i      (op_mode),
       .src_fmt_i     (fpnew_pkg::fp_format_e'(src_fmt)),
+      .src2_fmt_i    (fpnew_pkg::fp_format_e'(src_fmt)),
       .dst_fmt_i     (fpnew_pkg::fp_format_e'(dst_fmt)),
       .int_fmt_i     (fpnew_pkg::int_format_e'(int_fmt)),
       .vectorial_op_i(vectorial_op),
