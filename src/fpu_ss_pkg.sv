@@ -179,18 +179,20 @@ package fpu_ss_pkg;
   parameter bit C_XF16 = 1'b1;  // Is half-precision float extension (Xf16) enabled
   parameter bit C_XF16ALT = 1'b1; // Is alternative half-precision float extension (Xf16alt) enabled
   parameter bit C_XF8 = 1'b1;  // Is quarter-precision float extension (Xf8) enabled
-  parameter bit C_XF8ALT = 1'b1;
+  parameter bit C_XF8ALT = 1'b1; // Is alternative quarter-precision float extension (Xf8alt) enabled
   parameter bit C_XFVEC = 1'b1;  // Is vectorial float extension (Xfvec) enabled
 
   // Latency of FP operations: 0 = no pipe registers, 1 = 1 pipe register etc.
-  parameter int unsigned C_LAT_FP64 = 'd1; // set to 1 to mimic cv32e40p core internal
+  parameter int unsigned C_LAT_FP64 = 'd2; // set to 1 to mimic cv32e40p core internal
   parameter int unsigned C_LAT_FP32 = 'd1; // set to 1 to mimic cv32e40p core internal
   parameter int unsigned C_LAT_FP16 = 'd1; // set to 1 to mimic cv32e40p core internal
   parameter int unsigned C_LAT_FP16ALT = 'd1; // set to 1 to mimic cv32e40p core internal
   parameter int unsigned C_LAT_FP8 = 'd1; // set to 1 to break critical path
+  parameter int unsigned C_LAT_FP8ALT = 'd1;
   parameter int unsigned C_LAT_DIVSQRT = 'd1;  // divsqrt post-processing pipe
-  parameter int unsigned C_LAT_CONV = 'd1; // set to 1 to mimic cv32e40p core internal
   parameter int unsigned C_LAT_NONCOMP = 'd1; // set to 1 to mimic cv32e40p core internal
+  parameter int unsigned C_LAT_CONV = 'd1; // set to 1 to mimic cv32e40p core internal
+  parameter int unsigned C_LAT_DOTP = 'd2;
 
   // General FPU-specific defines
 
@@ -219,17 +221,17 @@ package fpu_ss_pkg;
   '{
       PipeRegs: // FMA Block
                 '{
-                  '{  2, // FP32
-                      2, // FP64
-                      1, // FP16
-                      1, // FP8
-                      1, // FP16alt
-                      1  // FP8alt
+                  '{  C_LAT_FP32, // FP32
+                      C_LAT_FP64, // FP64
+                      C_LAT_FP16, // FP16
+                      C_LAT_FP8, // FP8
+                      C_LAT_FP16ALT, // FP16alt
+                      C_LAT_FP8ALT  // FP8alt
                     },
-                  '{default: 1},   // DIVSQRT
-                  '{default: 1},   // NONCOMP
-                  '{default: 1},   // CONV
-                  '{default: 2}    // DOTP
+                  '{default: C_LAT_DIVSQRT},   // DIVSQRT
+                  '{default: C_LAT_NONCOMP},   // NONCOMP
+                  '{default: C_LAT_CONV},   // CONV
+                  '{default: C_LAT_DOTP}    // DOTP
                   },
       UnitTypes: '{'{default: fpnew_pkg::MERGED},  // FMA
                   '{default: fpnew_pkg::DISABLED}, // DIVSQRT
