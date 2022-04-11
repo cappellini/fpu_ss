@@ -248,6 +248,7 @@ module fpu_ss_decoder #(
       fpu_ss_instr_pkg::VFNSUM_S: begin
         fpu_op_o = fpnew_pkg::VSUM;
         op_select_o[0] = fpu_ss_pkg::RegA;
+        op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
         src_fmt_o      = fpnew_pkg::FP32;
         dst_fmt_o      = fpnew_pkg::FP32;
@@ -398,6 +399,7 @@ module fpu_ss_decoder #(
       fpu_ss_instr_pkg::VFNSUM_H: begin
         fpu_op_o = fpnew_pkg::VSUM;
         op_select_o[0] = fpu_ss_pkg::RegA;
+        op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
         src_fmt_o      = fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP16;
