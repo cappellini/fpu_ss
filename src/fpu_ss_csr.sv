@@ -30,6 +30,7 @@ module fpu_ss_csr (
 
 );
 
+  // [31:11] unused, [10:8] mode (formats), [7:5] roundmode, [4:0] flags
   logic [31:0] fcsr_d, fcsr_q, instr_q;
 
   assign frm_o = fcsr_q[7:5];
@@ -87,6 +88,18 @@ module fpu_ss_csr (
       end
       fpu_ss_instr_pkg::CSRRWI_FSFLAGSI: begin // Swap frm value in fcsr with the one in the immediat instr_i [19:15] (immediat is at [19:15])
         fcsr_d[4:0] = instr_i[19:15];
+      end
+      fpu_ss_instr_pkg::CSRRW_FSMODE: begin
+        fcsr_d[10:8]= csr_data_i[2:0];
+        csr_wb_o    = 1'b1;
+        csr_rdata_o = {29'b0, fcsr_q[10:8]};
+      end
+      fpu_ss_instr_pkg::CSRRS_FRMODE: begin
+        csr_wb_o    = 1'b1;
+        csr_rdata_o = {29'b0, fcsr_q[10:8]};
+      end
+      fpu_ss_instr_pkg::CSRRWI_FSMODEI: begin
+        fcsr_d[10:8] = instr_i[17:15];
       end
       default: begin
         if (fpu_out_valid_i) begin

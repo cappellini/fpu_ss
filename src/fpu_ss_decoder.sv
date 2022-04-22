@@ -17,6 +17,7 @@ module fpu_ss_decoder #(
 ) (
     input  logic                   [31:0] instr_i,
     input  fpnew_pkg::roundmode_e         fpu_rnd_mode_i,
+    input  fpnew_pkg::fmt_mode_t          fpu_fmt_mode,
     output fpnew_pkg::operation_e         fpu_op_o,
     output fpu_ss_pkg::op_select_e [ 2:0] op_select_o,
     output fpnew_pkg::roundmode_e         fpu_rnd_mode_o,
@@ -32,7 +33,6 @@ module fpu_ss_decoder #(
     output logic                          is_load_o,
     output fpu_ss_pkg::ls_size_e          ls_size_o
 );
-  fpnew_pkg::fmt_mode_t fpu_fmt_mode;
   logic rd_is_fp_dec;
 
   assign rd_is_fp_o = PULP_ZFINX ? 1'b0 : rd_is_fp_dec;

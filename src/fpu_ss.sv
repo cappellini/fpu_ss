@@ -232,7 +232,7 @@ module fpu_ss
 
   // memory request signal assignments
   assign x_mem_req_o.mode   = in_buf_pop_data.mode;
-  assign x_mem_req_o.size   = instr[14:12];
+  assign x_mem_req_o.size   = instr[13:12];
   assign x_mem_req_o.id     = in_buf_pop_data.id;
 
   always_comb begin
@@ -319,6 +319,7 @@ module fpu_ss
   ) fpu_ss_decoder_i (
       .instr_i       (instr),
       .fpu_rnd_mode_i(fpnew_pkg::roundmode_e'(frm)),
+      .fpu_fmt_mode  (fpnew_pkg::fmt_mode_t'(csr_rdata[10:8])),
       .fpu_op_o      (fpu_op),
       .op_select_o   (op_select_dec),
       .fpu_rnd_mode_o(fpu_rnd_mode),
