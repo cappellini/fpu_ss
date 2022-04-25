@@ -23,6 +23,7 @@ module fpu_ss_decoder #(
     output fpnew_pkg::roundmode_e         fpu_rnd_mode_o,
     output logic                          set_dyn_rm_o,
     output fpnew_pkg::fp_format_e         src_fmt_o,
+    output fpnew_pkg::fp_format_e         src2_fmt_o,
     output fpnew_pkg::fp_format_e         dst_fmt_o,
     output fpnew_pkg::int_format_e        int_fmt_o,
     output logic                          rd_is_fp_o,
@@ -36,7 +37,6 @@ module fpu_ss_decoder #(
   logic rd_is_fp_dec;
 
   assign rd_is_fp_o = PULP_ZFINX ? 1'b0 : rd_is_fp_dec;
-  assign fpu_fmt_mode = {1'b0, 1'b0};
 
   always_comb begin
 
@@ -48,9 +48,10 @@ module fpu_ss_decoder #(
 
     set_dyn_rm_o = 1'b0;
 
-    src_fmt_o = fpnew_pkg::FP32;
-    dst_fmt_o = fpnew_pkg::FP32;
-    int_fmt_o = fpnew_pkg::INT32;
+    src_fmt_o  = fpnew_pkg::FP32;
+    src2_fmt_o = fpnew_pkg::FP32;
+    dst_fmt_o  = fpnew_pkg::FP32;
+    int_fmt_o  = fpnew_pkg::INT32;
 
     op_select_o[0] = fpu_ss_pkg::None;
     op_select_o[1] = fpu_ss_pkg::None;
@@ -250,8 +251,6 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP32;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_S}) op_mode_o = 1'b1;
@@ -261,35 +260,26 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::ADD;
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FSUB_H: begin
         fpu_op_o = fpnew_pkg::ADD;
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
-        op_mode_o = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        op_mode_o      = 1'b1;
+        src_fmt_o      = fpu_fmt_mode.src ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FMUL_H: begin
         fpu_op_o = fpnew_pkg::MUL;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FSGNJ_H,
       fpu_ss_instr_pkg::FSGNJN_H,
@@ -297,12 +287,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::SGNJ;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FMIN_H,
       fpu_ss_instr_pkg::FMAX_H: begin
@@ -311,33 +297,24 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         src_fmt_o      = fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FSQRT_H: begin
         fpu_op_o = fpnew_pkg::SQRT;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegA;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FMADD_H: begin
         fpu_op_o = fpnew_pkg::FMADD;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FMSUB_H: begin
         fpu_op_o = fpnew_pkg::FMADD;
@@ -345,24 +322,18 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FNMSUB_H: begin
         fpu_op_o = fpnew_pkg::FNMSUB;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FNMADD_H: begin
         fpu_op_o = fpnew_pkg::FNMSUB;
@@ -370,12 +341,9 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::VFSUM_H,
       fpu_ss_instr_pkg::VFNSUM_H: begin
@@ -383,8 +351,9 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_H}) op_mode_o = 1'b1;
@@ -393,7 +362,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::MUL;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
       end
       fpu_ss_instr_pkg::FMACEX_S_H: begin
@@ -401,14 +371,14 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
       end
       fpu_ss_instr_pkg::FCVT_S_H: begin
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
       end
       fpu_ss_instr_pkg::FCVT_H_S: begin
@@ -416,14 +386,14 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FCVT_H_H: begin
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       // Vectorial [alternate] Half Precision
       fpu_ss_instr_pkg::VFADD_H,
@@ -431,12 +401,9 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::ADD;
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFADD_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
@@ -447,12 +414,9 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSUB_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
@@ -464,10 +428,9 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         src_fmt_o      = fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMUL_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -480,10 +443,8 @@ module fpu_ss_decoder #(
         fpu_rnd_mode_o = fpnew_pkg::RNE;
         src_fmt_o      = fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMIN_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -492,12 +453,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::MINMAX;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         fpu_rnd_mode_o = fpnew_pkg::RTZ;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMAX_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -506,12 +463,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::SQRT;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegA;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
       end
@@ -521,12 +474,9 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMAC_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -537,12 +487,9 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMRE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -553,12 +500,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RNE;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSGNJ_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -568,12 +511,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RTZ;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSGNJN_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -583,12 +522,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RDN;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP16ALT;
-          dst_fmt_o    = fpnew_pkg::FP16ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSGNJX_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -598,7 +533,7 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
         src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
       end
@@ -607,7 +542,7 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
@@ -619,7 +554,7 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_S}) op_mode_o = 1'b1;
@@ -630,7 +565,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
@@ -643,7 +579,8 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
@@ -654,7 +591,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::EXVSUM;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        src2_fmt_o     = fpnew_pkg::FP16;
         dst_fmt_o      = fpnew_pkg::FP32;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
@@ -665,35 +603,25 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::ADD;
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FSUB_B: begin
         fpu_op_o = fpnew_pkg::ADD;
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
         op_mode_o = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FMUL_B: begin
         fpu_op_o = fpnew_pkg::MUL;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FSGNJ_B,
       fpu_ss_instr_pkg::FSGNJN_B,
@@ -701,47 +629,32 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::SGNJ;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FMIN_B,
       fpu_ss_instr_pkg::FMAX_B: begin
         fpu_op_o = fpnew_pkg::MINMAX;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FSQRT_B: begin
         fpu_op_o = fpnew_pkg::SQRT;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegA;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FMADD_B: begin
         fpu_op_o = fpnew_pkg::FMADD;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FMSUB_B: begin
         fpu_op_o = fpnew_pkg::FMADD;
@@ -749,24 +662,18 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FNMSUB_B: begin
         fpu_op_o = fpnew_pkg::FNMSUB;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FNMADD_B: begin
         fpu_op_o = fpnew_pkg::FNMSUB;
@@ -774,20 +681,18 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegC;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::VFSUM_B,
       fpu_ss_instr_pkg::VFNSUM_B: begin
         fpu_op_o = fpnew_pkg::VSUM;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_B}) op_mode_o = 1'b1;
@@ -796,7 +701,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::MUL;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         dst_fmt_o      = fpnew_pkg::FP32;
       end
       fpu_ss_instr_pkg::FMACEX_S_B: begin
@@ -804,14 +710,15 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         dst_fmt_o      = fpnew_pkg::FP32;
       end
       fpu_ss_instr_pkg::FCVT_S_B: begin
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         dst_fmt_o      = fpnew_pkg::FP32;
       end
       fpu_ss_instr_pkg::FCVT_B_S: begin
@@ -819,21 +726,21 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       fpu_ss_instr_pkg::FCVT_H_B: begin
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
       end
       fpu_ss_instr_pkg::FCVT_B_H: begin
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
       end
       // Vectorial [alternate] Quarter Precision
       fpu_ss_instr_pkg::VFADD_B,
@@ -841,12 +748,9 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::ADD;
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFADD_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
@@ -857,12 +761,9 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegB;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSUB_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
@@ -872,12 +773,9 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::MUL;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMUL_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -888,12 +786,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RNE;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMIN_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -902,12 +796,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::MINMAX;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         fpu_rnd_mode_o = fpnew_pkg::RTZ;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMAX_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -916,12 +806,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::SQRT;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegA;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
       end
@@ -931,12 +817,9 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMAC_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -947,12 +830,9 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFMRE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
@@ -963,12 +843,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RNE;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSGNJ_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -978,12 +854,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RTZ;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSGNJN_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -993,12 +865,8 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         fpu_rnd_mode_o = fpnew_pkg::RDN;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
-        if (fpu_fmt_mode.dst == 1'b1) begin
-          src_fmt_o    = fpnew_pkg::FP8ALT;
-          dst_fmt_o    = fpnew_pkg::FP8ALT;
-        end
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFSGNJX_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
       end
@@ -1009,7 +877,7 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
         src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCPKB_B_S}) op_mode_o = 1;
@@ -1019,7 +887,7 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         dst_fmt_o      = fpnew_pkg::FP32;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
@@ -1031,7 +899,7 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         src_fmt_o      = fpnew_pkg::FP32;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_S}) op_mode_o = 1'b1;
@@ -1041,8 +909,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_H}) op_mode_o = 1'b1;
@@ -1052,8 +920,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_B}) op_mode_o = 1'b1;
@@ -1063,8 +931,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP16;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_H}) op_mode_o = 1'b1;
@@ -1074,8 +942,8 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::F2F;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP8;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_B}) op_mode_o = 1'b1;
@@ -1086,8 +954,9 @@ module fpu_ss_decoder #(
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
@@ -1099,8 +968,9 @@ module fpu_ss_decoder #(
         op_select_o[1] = fpu_ss_pkg::RegB;
         op_select_o[2] = fpu_ss_pkg::RegDest;
         op_mode_o      = 1'b1;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
@@ -1110,8 +980,9 @@ module fpu_ss_decoder #(
         fpu_op_o = fpnew_pkg::EXVSUM;
         op_select_o[0] = fpu_ss_pkg::RegA;
         op_select_o[2] = fpu_ss_pkg::RegDest;
-        src_fmt_o      = fpnew_pkg::FP8;
-        dst_fmt_o      = fpnew_pkg::FP16;
+        src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+        src2_fmt_o     = fpnew_pkg::FP8;
+        dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
         vectorial_op_o = 1'b1;
         set_dyn_rm_o   = 1'b1;
         if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_H_B}) op_mode_o = 1'b1;

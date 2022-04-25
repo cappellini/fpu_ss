@@ -127,6 +127,7 @@ module fpu_ss
   fpnew_pkg::roundmode_e                          fpu_rnd_mode;
   logic                                           set_dyn_rm;
   fpnew_pkg::fp_format_e                          src_fmt;
+  fpnew_pkg::fp_format_e                          src2_fmt;
   fpnew_pkg::fp_format_e                          dst_fmt;
   fpnew_pkg::int_format_e                         int_fmt;
   logic                                           rd_is_fp;
@@ -325,6 +326,7 @@ module fpu_ss
       .fpu_rnd_mode_o(fpu_rnd_mode),
       .set_dyn_rm_o  (set_dyn_rm),
       .src_fmt_o     (src_fmt),
+      .src2_fmt_o    (src2_fmt),
       .dst_fmt_o     (dst_fmt),
       .int_fmt_o     (int_fmt),
       .rd_is_fp_o    (rd_is_fp),
@@ -622,7 +624,7 @@ module fpu_ss
       .op_i          (fpnew_pkg::operation_e'(fpu_op)),
       .op_mod_i      (op_mode),
       .src_fmt_i     (fpnew_pkg::fp_format_e'(src_fmt)),
-      .src2_fmt_i    (fpnew_pkg::fp_format_e'(src_fmt)),
+      .src2_fmt_i    (fpnew_pkg::fp_format_e'(src2_fmt)),
       .dst_fmt_i     (fpnew_pkg::fp_format_e'(dst_fmt)),
       .int_fmt_i     (fpnew_pkg::int_format_e'(int_fmt)),
       .vectorial_op_i(vectorial_op),
