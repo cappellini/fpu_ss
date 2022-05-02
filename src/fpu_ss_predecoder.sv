@@ -106,7 +106,8 @@ module fpu_ss_predecoder #(
       fpu_ss_instr_pkg::FMV_X_B,
       fpu_ss_instr_pkg::CSRRWI_FSRMI,
       fpu_ss_instr_pkg::CSRRWI_FSFLAGSI,
-      fpu_ss_instr_pkg::CSRRWI_FSMODEI: begin
+      fpu_ss_instr_pkg::CSRRWI_FSMODEI,
+      fpu_ss_instr_pkg::CSRRWI_FSSRMI: begin
         prd_rsp_o.p_accept    = 1'b1;
         prd_rsp_o.p_writeback = 1'b1;
         prd_rsp_o.p_is_mem_op = 1'b0;
@@ -150,168 +151,169 @@ module fpu_ss_predecoder #(
       fpu_ss_instr_pkg::CSRRW_FSFLAGS,
       fpu_ss_instr_pkg::CSRRS_FRFLAGS,
       fpu_ss_instr_pkg::CSRRW_FSMODE,
-      fpu_ss_instr_pkg::CSRRS_FRMODE: begin
+      fpu_ss_instr_pkg::CSRRS_FRMODE,
+      fpu_ss_instr_pkg::CSRRW_FSSRM,
+      fpu_ss_instr_pkg::CSRRS_FRSRM: begin
         prd_rsp_o.p_accept    = 1'b1;
         prd_rsp_o.p_writeback = 1'b1;
         prd_rsp_o.p_is_mem_op = 1'b0;
         prd_rsp_o.p_use_rs    = 3'b001;
       end
-      // default: begin
-      //   prd_rsp_o.p_accept    = 1'b0;
-      //   prd_rsp_o.p_writeback = 1'b0;
-      //   prd_rsp_o.p_is_mem_op = 1'b0;
-      //   prd_rsp_o.p_use_rs    = 3'b000;
-      // end
-    endcase
-
-    if(XFVEC) begin
-      unique casez (prd_req_i.q_instr_data)
-        fpu_ss_instr_pkg::FDIV_S,
-        fpu_ss_instr_pkg::FSQRT_S: begin
+      
+      fpu_ss_instr_pkg::FDIV_S,
+      fpu_ss_instr_pkg::FSQRT_S: begin
+        if(XDivSqrt) begin
           prd_rsp_o.p_accept    = 1'b1;
           prd_rsp_o.p_writeback = 1'b0;
           prd_rsp_o.p_is_mem_op = 1'b0;
           prd_rsp_o.p_use_rs    = 3'b000;
         end
-      endcase
-    end
+      end
 
-    if(XFVEC) begin
-      unique casez (prd_req_i.q_instr_data)
-        // vectorized fp to fp
-        fpu_ss_instr_pkg::VFSUM_H,
-        fpu_ss_instr_pkg::VFNSUM_H,
-        fpu_ss_instr_pkg::VFADD_H,
-        fpu_ss_instr_pkg::VFADD_R_H,
-        fpu_ss_instr_pkg::VFSUB_H,
-        fpu_ss_instr_pkg::VFSUB_R_H,
-        fpu_ss_instr_pkg::VFMUL_H,
-        fpu_ss_instr_pkg::VFMUL_R_H,
-        fpu_ss_instr_pkg::VFMIN_H,
-        fpu_ss_instr_pkg::VFMIN_R_H,
-        fpu_ss_instr_pkg::VFMAX_H,
-        fpu_ss_instr_pkg::VFMAX_R_H,
-        fpu_ss_instr_pkg::VFMAC_H,
-        fpu_ss_instr_pkg::VFMAC_R_H,
-        fpu_ss_instr_pkg::VFMRE_H,
-        fpu_ss_instr_pkg::VFMRE_R_H,
-        fpu_ss_instr_pkg::VFSGNJ_H,
-        fpu_ss_instr_pkg::VFSGNJ_R_H,
-        fpu_ss_instr_pkg::VFSGNJN_H,
-        fpu_ss_instr_pkg::VFSGNJN_R_H,
-        fpu_ss_instr_pkg::VFSGNJX_H,
-        fpu_ss_instr_pkg::VFSGNJX_R_H,
-        fpu_ss_instr_pkg::VFCPKA_H_S,
-        fpu_ss_instr_pkg::VFCVT_S_H,
-        fpu_ss_instr_pkg::VFCVTU_S_H,
-        fpu_ss_instr_pkg::VFCVT_H_S,
-        fpu_ss_instr_pkg::VFCVTU_H_S,
-        fpu_ss_instr_pkg::VFDOTPEX_S_H,
-        fpu_ss_instr_pkg::VFDOTPEX_S_R_H,
-        fpu_ss_instr_pkg::VFNDOTPEX_S_H,
-        fpu_ss_instr_pkg::VFNDOTPEX_S_R_H,
-        fpu_ss_instr_pkg::VFSUMEX_S_H,
-        fpu_ss_instr_pkg::VFNSUMEX_S_H,
-        fpu_ss_instr_pkg::VFSUM_B,
-        fpu_ss_instr_pkg::VFNSUM_B,
-        fpu_ss_instr_pkg::VFADD_B,
-        fpu_ss_instr_pkg::VFADD_R_B,
-        fpu_ss_instr_pkg::VFSUB_B,
-        fpu_ss_instr_pkg::VFSUB_R_B,
-        fpu_ss_instr_pkg::VFMUL_B,
-        fpu_ss_instr_pkg::VFMUL_R_B,
-        fpu_ss_instr_pkg::VFMIN_B,
-        fpu_ss_instr_pkg::VFMIN_R_B,
-        fpu_ss_instr_pkg::VFMAX_B,
-        fpu_ss_instr_pkg::VFMAX_R_B,
-        fpu_ss_instr_pkg::VFMAC_B,
-        fpu_ss_instr_pkg::VFMAC_R_B,
-        fpu_ss_instr_pkg::VFMRE_B,
-        fpu_ss_instr_pkg::VFMRE_R_B,
-        fpu_ss_instr_pkg::VFSGNJ_B,
-        fpu_ss_instr_pkg::VFSGNJ_R_B,
-        fpu_ss_instr_pkg::VFSGNJN_B,
-        fpu_ss_instr_pkg::VFSGNJN_R_B,
-        fpu_ss_instr_pkg::VFSGNJX_B,
-        fpu_ss_instr_pkg::VFSGNJX_R_B,
-        fpu_ss_instr_pkg::VFCPKA_B_S,
-        fpu_ss_instr_pkg::VFCPKB_B_S,
-        fpu_ss_instr_pkg::VFCVT_S_B,
-        fpu_ss_instr_pkg::VFCVTU_S_B,
-        fpu_ss_instr_pkg::VFCVT_B_S,
-        fpu_ss_instr_pkg::VFCVTU_B_S,
-        fpu_ss_instr_pkg::VFCVT_H_H,
-        fpu_ss_instr_pkg::VFCVTU_H_H,
-        fpu_ss_instr_pkg::VFCVT_H_B,
-        fpu_ss_instr_pkg::VFCVTU_H_B,
-        fpu_ss_instr_pkg::VFCVT_B_H,
-        fpu_ss_instr_pkg::VFCVTU_B_H,
-        fpu_ss_instr_pkg::VFCVT_B_B,
-        fpu_ss_instr_pkg::VFCVTU_B_B,
-        fpu_ss_instr_pkg::VFDOTPEX_H_B,
-        fpu_ss_instr_pkg::VFDOTPEX_H_R_B,
-        fpu_ss_instr_pkg::VFNDOTPEX_H_B,
-        fpu_ss_instr_pkg::VFNDOTPEX_H_R_B,
-        fpu_ss_instr_pkg::VFSUMEX_H_B,
-        fpu_ss_instr_pkg::VFNSUMEX_H_B: begin
+      // vectorized fp to fp
+      fpu_ss_instr_pkg::VFSUM_H,
+      fpu_ss_instr_pkg::VFNSUM_H,
+      fpu_ss_instr_pkg::VFADD_H,
+      fpu_ss_instr_pkg::VFADD_R_H,
+      fpu_ss_instr_pkg::VFSUB_H,
+      fpu_ss_instr_pkg::VFSUB_R_H,
+      fpu_ss_instr_pkg::VFMUL_H,
+      fpu_ss_instr_pkg::VFMUL_R_H,
+      fpu_ss_instr_pkg::VFMIN_H,
+      fpu_ss_instr_pkg::VFMIN_R_H,
+      fpu_ss_instr_pkg::VFMAX_H,
+      fpu_ss_instr_pkg::VFMAX_R_H,
+      fpu_ss_instr_pkg::VFMAC_H,
+      fpu_ss_instr_pkg::VFMAC_R_H,
+      fpu_ss_instr_pkg::VFMRE_H,
+      fpu_ss_instr_pkg::VFMRE_R_H,
+      fpu_ss_instr_pkg::VFSGNJ_H,
+      fpu_ss_instr_pkg::VFSGNJ_R_H,
+      fpu_ss_instr_pkg::VFSGNJN_H,
+      fpu_ss_instr_pkg::VFSGNJN_R_H,
+      fpu_ss_instr_pkg::VFSGNJX_H,
+      fpu_ss_instr_pkg::VFSGNJX_R_H,
+      fpu_ss_instr_pkg::VFCPKA_H_S,
+      fpu_ss_instr_pkg::VFCVT_S_H,
+      fpu_ss_instr_pkg::VFCVTU_S_H,
+      fpu_ss_instr_pkg::VFCVT_H_S,
+      fpu_ss_instr_pkg::VFCVTU_H_S,
+      fpu_ss_instr_pkg::VFDOTPEX_S_H,
+      fpu_ss_instr_pkg::VFDOTPEX_S_R_H,
+      fpu_ss_instr_pkg::VFNDOTPEX_S_H,
+      fpu_ss_instr_pkg::VFNDOTPEX_S_R_H,
+      fpu_ss_instr_pkg::VFSUMEX_S_H,
+      fpu_ss_instr_pkg::VFNSUMEX_S_H,
+      fpu_ss_instr_pkg::VFSUM_B,
+      fpu_ss_instr_pkg::VFNSUM_B,
+      fpu_ss_instr_pkg::VFADD_B,
+      fpu_ss_instr_pkg::VFADD_R_B,
+      fpu_ss_instr_pkg::VFSUB_B,
+      fpu_ss_instr_pkg::VFSUB_R_B,
+      fpu_ss_instr_pkg::VFMUL_B,
+      fpu_ss_instr_pkg::VFMUL_R_B,
+      fpu_ss_instr_pkg::VFMIN_B,
+      fpu_ss_instr_pkg::VFMIN_R_B,
+      fpu_ss_instr_pkg::VFMAX_B,
+      fpu_ss_instr_pkg::VFMAX_R_B,
+      fpu_ss_instr_pkg::VFMAC_B,
+      fpu_ss_instr_pkg::VFMAC_R_B,
+      fpu_ss_instr_pkg::VFMRE_B,
+      fpu_ss_instr_pkg::VFMRE_R_B,
+      fpu_ss_instr_pkg::VFSGNJ_B,
+      fpu_ss_instr_pkg::VFSGNJ_R_B,
+      fpu_ss_instr_pkg::VFSGNJN_B,
+      fpu_ss_instr_pkg::VFSGNJN_R_B,
+      fpu_ss_instr_pkg::VFSGNJX_B,
+      fpu_ss_instr_pkg::VFSGNJX_R_B,
+      fpu_ss_instr_pkg::VFCPKA_B_S,
+      fpu_ss_instr_pkg::VFCPKB_B_S,
+      fpu_ss_instr_pkg::VFCVT_S_B,
+      fpu_ss_instr_pkg::VFCVTU_S_B,
+      fpu_ss_instr_pkg::VFCVT_B_S,
+      fpu_ss_instr_pkg::VFCVTU_B_S,
+      fpu_ss_instr_pkg::VFCVT_H_H,
+      fpu_ss_instr_pkg::VFCVTU_H_H,
+      fpu_ss_instr_pkg::VFCVT_H_B,
+      fpu_ss_instr_pkg::VFCVTU_H_B,
+      fpu_ss_instr_pkg::VFCVT_B_H,
+      fpu_ss_instr_pkg::VFCVTU_B_H,
+      fpu_ss_instr_pkg::VFCVT_B_B,
+      fpu_ss_instr_pkg::VFCVTU_B_B,
+      fpu_ss_instr_pkg::VFDOTPEX_H_B,
+      fpu_ss_instr_pkg::VFDOTPEX_H_R_B,
+      fpu_ss_instr_pkg::VFNDOTPEX_H_B,
+      fpu_ss_instr_pkg::VFNDOTPEX_H_R_B,
+      fpu_ss_instr_pkg::VFSUMEX_H_B,
+      fpu_ss_instr_pkg::VFNSUMEX_H_B: begin
+        if(XFVEC) begin
           prd_rsp_o.p_accept    = 1'b1;
           prd_rsp_o.p_writeback = 1'b0;
           prd_rsp_o.p_is_mem_op = 1'b0;
           prd_rsp_o.p_use_rs    = 3'b000;
         end
+      end
 
-        // vectorized fp to int
-        fpu_ss_instr_pkg::VFEQ_H,
-        fpu_ss_instr_pkg::VFEQ_R_H,
-        fpu_ss_instr_pkg::VFNE_H,
-        fpu_ss_instr_pkg::VFNE_R_H,
-        fpu_ss_instr_pkg::VFLT_H,
-        fpu_ss_instr_pkg::VFLT_R_H,
-        fpu_ss_instr_pkg::VFGE_H,
-        fpu_ss_instr_pkg::VFGE_R_H,
-        fpu_ss_instr_pkg::VFLE_H,
-        fpu_ss_instr_pkg::VFLE_R_H,
-        fpu_ss_instr_pkg::VFGT_H,
-        fpu_ss_instr_pkg::VFGT_R_H,
-        fpu_ss_instr_pkg::VFCLASS_H,
-        fpu_ss_instr_pkg::VFMV_X_H,
-        fpu_ss_instr_pkg::VFCVT_X_H,
-        fpu_ss_instr_pkg::VFCVT_XU_H,
-        fpu_ss_instr_pkg::VFEQ_B,
-        fpu_ss_instr_pkg::VFEQ_R_B,
-        fpu_ss_instr_pkg::VFNE_B,
-        fpu_ss_instr_pkg::VFNE_R_B,
-        fpu_ss_instr_pkg::VFLT_B,
-        fpu_ss_instr_pkg::VFLT_R_B,
-        fpu_ss_instr_pkg::VFGE_B,
-        fpu_ss_instr_pkg::VFGE_R_B,
-        fpu_ss_instr_pkg::VFLE_B,
-        fpu_ss_instr_pkg::VFLE_R_B,
-        fpu_ss_instr_pkg::VFGT_B,
-        fpu_ss_instr_pkg::VFGT_R_B,
-        fpu_ss_instr_pkg::VFCLASS_B,
-        fpu_ss_instr_pkg::VFMV_X_B,
-        fpu_ss_instr_pkg::VFCVT_X_B,
-        fpu_ss_instr_pkg::VFCVT_XU_B: begin
+      // vectorized fp to int
+      fpu_ss_instr_pkg::VFEQ_H,
+      fpu_ss_instr_pkg::VFEQ_R_H,
+      fpu_ss_instr_pkg::VFNE_H,
+      fpu_ss_instr_pkg::VFNE_R_H,
+      fpu_ss_instr_pkg::VFLT_H,
+      fpu_ss_instr_pkg::VFLT_R_H,
+      fpu_ss_instr_pkg::VFGE_H,
+      fpu_ss_instr_pkg::VFGE_R_H,
+      fpu_ss_instr_pkg::VFLE_H,
+      fpu_ss_instr_pkg::VFLE_R_H,
+      fpu_ss_instr_pkg::VFGT_H,
+      fpu_ss_instr_pkg::VFGT_R_H,
+      fpu_ss_instr_pkg::VFCLASS_H,
+      fpu_ss_instr_pkg::VFMV_X_H,
+      fpu_ss_instr_pkg::VFCVT_X_H,
+      fpu_ss_instr_pkg::VFCVT_XU_H,
+      fpu_ss_instr_pkg::VFEQ_B,
+      fpu_ss_instr_pkg::VFEQ_R_B,
+      fpu_ss_instr_pkg::VFNE_B,
+      fpu_ss_instr_pkg::VFNE_R_B,
+      fpu_ss_instr_pkg::VFLT_B,
+      fpu_ss_instr_pkg::VFLT_R_B,
+      fpu_ss_instr_pkg::VFGE_B,
+      fpu_ss_instr_pkg::VFGE_R_B,
+      fpu_ss_instr_pkg::VFLE_B,
+      fpu_ss_instr_pkg::VFLE_R_B,
+      fpu_ss_instr_pkg::VFGT_B,
+      fpu_ss_instr_pkg::VFGT_R_B,
+      fpu_ss_instr_pkg::VFCLASS_B,
+      fpu_ss_instr_pkg::VFMV_X_B,
+      fpu_ss_instr_pkg::VFCVT_X_B,
+      fpu_ss_instr_pkg::VFCVT_XU_B: begin
+        if(XFVEC) begin
           prd_rsp_o.p_accept    = 1'b1;
           prd_rsp_o.p_writeback = 1'b1;
           prd_rsp_o.p_is_mem_op = 1'b0;
           prd_rsp_o.p_use_rs    = 3'b000;
         end
-        // vectorized int to fp
-        fpu_ss_instr_pkg::VFMV_H_X,
-        fpu_ss_instr_pkg::VFCVT_H_X,
-        fpu_ss_instr_pkg::VFCVT_H_XU,
-        fpu_ss_instr_pkg::VFMV_B_X,
-        fpu_ss_instr_pkg::VFCVT_B_X,
-        fpu_ss_instr_pkg::VFCVT_B_XU: begin
+      end
+      // vectorized int to fp
+      fpu_ss_instr_pkg::VFMV_H_X,
+      fpu_ss_instr_pkg::VFCVT_H_X,
+      fpu_ss_instr_pkg::VFCVT_H_XU,
+      fpu_ss_instr_pkg::VFMV_B_X,
+      fpu_ss_instr_pkg::VFCVT_B_X,
+      fpu_ss_instr_pkg::VFCVT_B_XU: begin
+        if(XFVEC) begin
           prd_rsp_o.p_accept    = 1'b1;
           prd_rsp_o.p_writeback = 1'b0;
           prd_rsp_o.p_is_mem_op = 1'b0;
           prd_rsp_o.p_use_rs    = 3'b001;
         end
-        // default:
-      endcase
-    end
+      end
+      default: begin
+        prd_rsp_o.p_accept    = 1'b0;
+        prd_rsp_o.p_writeback = 1'b0;
+        prd_rsp_o.p_is_mem_op = 1'b0;
+        prd_rsp_o.p_use_rs    = 3'b000;
+      end
+    endcase
   end
 endmodule // fpu_ss_predecoder

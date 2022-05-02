@@ -598,844 +598,958 @@ module fpu_ss_decoder #(
         use_fpu_o = 1'b0;
         rd_is_fp_dec = 1'b0;
       end
-      // default: begin
-      //   use_fpu_o = 1'b0;
-      //   rd_is_fp_dec = 1'b0;
-      // end
-    endcase
-
-
-      if(XDivSqrt) begin
-        unique casez (instr_i)
-          fpu_ss_instr_pkg::FDIV_S: begin  // currently illegal
+      fpu_ss_instr_pkg::FDIV_S: begin
+        if(XDivSqrt) begin
           fpu_op_o = fpnew_pkg::DIV;
           op_select_o[0] = fpu_ss_pkg::RegA;
           op_select_o[1] = fpu_ss_pkg::RegB;
-          end
-          fpu_ss_instr_pkg::FSQRT_S: begin  // currently illegal
-            fpu_op_o = fpnew_pkg::SQRT;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegA;
-          end
-        // default:
-        endcase
+        end
       end
-
-      if(XFVEC) begin
-        unique casez (instr_i)
-          // Vectorial [alternate] Half Precision
-          fpu_ss_instr_pkg::VFSUM_H,
-          fpu_ss_instr_pkg::VFNSUM_H: begin
-            fpu_op_o = fpnew_pkg::VSUM;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_H}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFADD_H,
-          fpu_ss_instr_pkg::VFADD_R_H: begin
-            fpu_op_o = fpnew_pkg::ADD;
-            op_select_o[1] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFADD_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSUB_H,
-          fpu_ss_instr_pkg::VFSUB_R_H: begin
-            fpu_op_o  = fpnew_pkg::ADD;
-            op_select_o[1] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegB;
-            op_mode_o      = 1'b1;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSUB_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMUL_H,
-          fpu_ss_instr_pkg::VFMUL_R_H: begin
-            fpu_op_o = fpnew_pkg::MUL;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP16;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMUL_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMIN_H,
-          fpu_ss_instr_pkg::VFMIN_R_H: begin
-            fpu_op_o = fpnew_pkg::MINMAX;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RNE;
-            src_fmt_o      = fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP16;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMIN_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMAX_H,
-          fpu_ss_instr_pkg::VFMAX_R_H: begin
-            fpu_op_o = fpnew_pkg::MINMAX;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            fpu_rnd_mode_o = fpnew_pkg::RTZ;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMAX_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMAC_H,
-          fpu_ss_instr_pkg::VFMAC_R_H: begin
-            fpu_op_o = fpnew_pkg::FMADD;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMAC_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMRE_H,
-          fpu_ss_instr_pkg::VFMRE_R_H: begin
-            fpu_op_o = fpnew_pkg::FNMSUB;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMRE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSGNJ_H,
-          fpu_ss_instr_pkg::VFSGNJ_R_H: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RNE;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSGNJ_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSGNJN_H,
-          fpu_ss_instr_pkg::VFSGNJN_R_H: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RTZ;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSGNJN_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSGNJX_H,
-          fpu_ss_instr_pkg::VFSGNJX_R_H: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RDN;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSGNJX_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFCPKA_H_S: begin
-            fpu_op_o = fpnew_pkg::CPKAB;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpnew_pkg::FP32;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_S_H,
-          fpu_ss_instr_pkg::VFCVTU_S_H: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP32;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_S_H}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_H_S,
-          fpu_ss_instr_pkg::VFCVTU_H_S: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpnew_pkg::FP32;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_S}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFDOTPEX_S_H,
-          fpu_ss_instr_pkg::VFDOTPEX_S_R_H: begin
-            fpu_op_o = fpnew_pkg::SDOTP;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP32;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_S_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFNDOTPEX_S_H,
-          fpu_ss_instr_pkg::VFNDOTPEX_S_R_H: begin
-            fpu_op_o = fpnew_pkg::SDOTP;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            op_mode_o      = 1'b1;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP32;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_S_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSUMEX_S_H,
-          fpu_ss_instr_pkg::VFNSUMEX_S_H: begin
-            fpu_op_o = fpnew_pkg::EXVSUM;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            src2_fmt_o     = fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP32;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_S_H}) op_mode_o = 1'b1;
-          end
-          // Vectorial [alternate] Quarter Precision
-          fpu_ss_instr_pkg::VFSUM_B,
-          fpu_ss_instr_pkg::VFNSUM_B: begin
-            fpu_op_o = fpnew_pkg::VSUM;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_B}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFADD_B,
-          fpu_ss_instr_pkg::VFADD_R_B: begin
-            fpu_op_o = fpnew_pkg::ADD;
-            op_select_o[1] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFADD_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSUB_B,
-          fpu_ss_instr_pkg::VFSUB_R_B: begin
-            fpu_op_o  = fpnew_pkg::ADD;
-            op_select_o[1] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegB;
-            op_mode_o      = 1'b1;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSUB_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMUL_B,
-          fpu_ss_instr_pkg::VFMUL_R_B: begin
-            fpu_op_o = fpnew_pkg::MUL;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMUL_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMIN_B,
-          fpu_ss_instr_pkg::VFMIN_R_B: begin
-            fpu_op_o = fpnew_pkg::MINMAX;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RNE;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMIN_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMAX_B,
-          fpu_ss_instr_pkg::VFMAX_R_B: begin
-            fpu_op_o = fpnew_pkg::MINMAX;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            fpu_rnd_mode_o = fpnew_pkg::RTZ;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMAX_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMAC_B,
-          fpu_ss_instr_pkg::VFMAC_R_B: begin
-            fpu_op_o = fpnew_pkg::FMADD;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMAC_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFMRE_B,
-          fpu_ss_instr_pkg::VFMRE_R_B: begin
-            fpu_op_o = fpnew_pkg::FNMSUB;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFMRE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSGNJ_B,
-          fpu_ss_instr_pkg::VFSGNJ_R_B: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RNE;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSGNJ_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSGNJN_B,
-          fpu_ss_instr_pkg::VFSGNJN_R_B: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RTZ;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSGNJN_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSGNJX_B,
-          fpu_ss_instr_pkg::VFSGNJX_R_B: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o = fpnew_pkg::RDN;
-            src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFSGNJX_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFCPKA_B_S,
-          fpu_ss_instr_pkg::VFCPKB_B_S: begin
-            fpu_op_o = fpnew_pkg::CPKAB;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpnew_pkg::FP32;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCPKB_B_S}) op_mode_o = 1;
-          end
-          fpu_ss_instr_pkg::VFCVT_S_B,
-          fpu_ss_instr_pkg::VFCVTU_S_B: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpnew_pkg::FP32;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_S_B}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_B_S,
-          fpu_ss_instr_pkg::VFCVTU_B_S: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpnew_pkg::FP32;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_S}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_H_H,
-          fpu_ss_instr_pkg::VFCVTU_H_H: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_H}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_H_B,
-          fpu_ss_instr_pkg::VFCVTU_H_B: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_B}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_B_H,
-          fpu_ss_instr_pkg::VFCVTU_B_H: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_H}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_B_B,
-          fpu_ss_instr_pkg::VFCVTU_B_B: begin
-            fpu_op_o = fpnew_pkg::F2F;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_B}) op_mode_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFDOTPEX_H_B,
-          fpu_ss_instr_pkg::VFDOTPEX_H_R_B: begin
-            fpu_op_o = fpnew_pkg::SDOTP;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFNDOTPEX_H_B,
-          fpu_ss_instr_pkg::VFNDOTPEX_H_R_B: begin
-            fpu_op_o = fpnew_pkg::SDOTP;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[1] = fpu_ss_pkg::RegB;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            op_mode_o      = 1'b1;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFSUMEX_H_B,
-          fpu_ss_instr_pkg::VFNSUMEX_H_B: begin
-            fpu_op_o = fpnew_pkg::EXVSUM;
-            op_select_o[0] = fpu_ss_pkg::RegA;
-            op_select_o[2] = fpu_ss_pkg::RegDest;
-            src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
-            src2_fmt_o     = fpnew_pkg::FP8;
-            dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_H_B}) op_mode_o = 1'b1;
-          end
-          // Vectorial [alternate] Half Precision
-          fpu_ss_instr_pkg::VFEQ_H,
-          fpu_ss_instr_pkg::VFEQ_R_H: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RDN;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFEQ_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFNE_H,
-          fpu_ss_instr_pkg::VFNE_R_H: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RDN;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            op_mode_o        = 1'b1;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFLT_H,
-          fpu_ss_instr_pkg::VFLT_R_H: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RTZ;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFLT_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFGE_H,
-          fpu_ss_instr_pkg::VFGE_R_H: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RTZ;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            op_mode_o        = 1'b1;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFGE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFLE_H,
-          fpu_ss_instr_pkg::VFLE_R_H: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RNE;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFLE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFGT_H,
-          fpu_ss_instr_pkg::VFGT_R_H: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RNE;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            op_mode_o        = 1'b1;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFGT_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFCLASS_H: begin
-            fpu_op_o = fpnew_pkg::CLASSIFY;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            fpu_rnd_mode_o   = fpnew_pkg::RNE;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-          end
-          fpu_ss_instr_pkg::VFMV_X_H: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            fpu_rnd_mode_o   = fpnew_pkg::RUP; // passthrough without checking nan-box
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            op_mode_o        = 1'b1; // sign-extend result
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-          end
-          fpu_ss_instr_pkg::VFCVT_X_H,
-          fpu_ss_instr_pkg::VFCVT_XU_H: begin
-            fpu_op_o = fpnew_pkg::F2I;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            src_fmt_o        = fpnew_pkg::FP16;
-            dst_fmt_o        = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP16ALT;
-              dst_fmt_o      = fpnew_pkg::FP16ALT;
-            end
-            int_fmt_o        = fpnew_pkg::INT16;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            set_dyn_rm_o     = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVT_XU_H}) op_mode_o = 1'b1; // upper
-          end
-          // Vectorial Quarter Precision
-          fpu_ss_instr_pkg::VFEQ_B,
-          fpu_ss_instr_pkg::VFEQ_R_B: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RDN;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFEQ_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFNE_B,
-          fpu_ss_instr_pkg::VFNE_R_B: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RDN;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            op_mode_o        = 1'b1;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFNE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFLT_B,
-          fpu_ss_instr_pkg::VFLT_R_B: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RTZ;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFLT_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFGE_B,
-          fpu_ss_instr_pkg::VFGE_R_B: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RTZ;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            op_mode_o        = 1'b1;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFGE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFLE_B,
-          fpu_ss_instr_pkg::VFLE_R_B: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RNE;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFLE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFGT_B,
-          fpu_ss_instr_pkg::VFGT_R_B: begin
-            fpu_op_o = fpnew_pkg::CMP;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            op_select_o[1]   = fpu_ss_pkg::RegB;
-            fpu_rnd_mode_o   = fpnew_pkg::RNE;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            op_mode_o        = 1'b1;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            if (instr_i inside {fpu_ss_instr_pkg::VFGT_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
-          end
-          fpu_ss_instr_pkg::VFCLASS_B: begin
-            fpu_op_o = fpnew_pkg::CLASSIFY;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            fpu_rnd_mode_o   = fpnew_pkg::RNE;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-          end
-          fpu_ss_instr_pkg::VFMV_X_B: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            fpu_rnd_mode_o   = fpnew_pkg::RUP; // passthrough without checking nan-box
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            op_mode_o        = 1'b1; // sign-extend result
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-          end
-          fpu_ss_instr_pkg::VFCVT_X_B,
-          fpu_ss_instr_pkg::VFCVT_XU_B: begin
-            fpu_op_o = fpnew_pkg::F2I;
-            op_select_o[0]   = fpu_ss_pkg::RegA;
-            src_fmt_o        = fpnew_pkg::FP8;
-            dst_fmt_o        = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.src == 1'b1) begin
-              src_fmt_o      = fpnew_pkg::FP8ALT;
-              dst_fmt_o      = fpnew_pkg::FP8ALT;
-            end
-            int_fmt_o        = fpnew_pkg::INT8;
-            vectorial_op_o   = 1'b1;
-            rd_is_fp_dec       = 1'b0;
-            set_dyn_rm_o     = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVT_XU_B}) op_mode_o = 1'b1; // upper
-          end
-          // Vectorial Half Precision Floating-Point
-          fpu_ss_instr_pkg::VFMV_H_X: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::AccBus;
-            fpu_rnd_mode_o = fpnew_pkg::RUP; // passthrough without checking nan-box
-            src_fmt_o      = fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.dst == 1'b1) begin
-              src_fmt_o    = fpnew_pkg::FP16ALT;
-              dst_fmt_o    = fpnew_pkg::FP16ALT;
-            end
-            vectorial_op_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_H_X,
-          fpu_ss_instr_pkg::VFCVT_H_XU: begin
-            fpu_op_o = fpnew_pkg::I2F;
-            op_select_o[0] = fpu_ss_pkg::AccBus;
-            src_fmt_o      = fpnew_pkg::FP16;
-            dst_fmt_o      = fpnew_pkg::FP16;
-            if (fpu_fmt_mode.dst == 1'b1) begin
-              src_fmt_o    = fpnew_pkg::FP16ALT;
-              dst_fmt_o    = fpnew_pkg::FP16ALT;
-            end
-            int_fmt_o      = fpnew_pkg::INT16;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVT_H_XU}) op_mode_o = 1'b1; // upper
-          end
-          // [Alternate] Quarter Precision Floating-Point
-          fpu_ss_instr_pkg::FMV_B_X: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::AccBus;
-            fpu_rnd_mode_o = fpnew_pkg::RUP; // passthrough without checking nan-box
-            src_fmt_o      = fpnew_pkg::FP8;
-            dst_fmt_o      = fpnew_pkg::FP8;
-            if (fpu_fmt_mode.dst == 1'b1) begin
-              src_fmt_o    = fpnew_pkg::FP8ALT;
-              dst_fmt_o    = fpnew_pkg::FP8ALT;
-            end
-          end
-          fpu_ss_instr_pkg::FCVT_B_W,
-          fpu_ss_instr_pkg::FCVT_B_WU: begin
-            fpu_op_o = fpnew_pkg::I2F;
-            op_select_o[0] = fpu_ss_pkg::AccBus;
-            src_fmt_o      = fpnew_pkg::FP8;
-            dst_fmt_o      = fpnew_pkg::FP8;
-            if (instr_i inside {fpu_ss_instr_pkg::FCVT_B_WU}) op_mode_o = 1'b1; // unsigned
-          end
-          // Vectorial Quarter Precision Floating-Point
-          fpu_ss_instr_pkg::VFMV_B_X: begin
-            fpu_op_o = fpnew_pkg::SGNJ;
-            op_select_o[0] = fpu_ss_pkg::AccBus;
-            fpu_rnd_mode_o = fpnew_pkg::RUP; // passthrough without checking nan-box
-            src_fmt_o      = fpnew_pkg::FP8;
-            dst_fmt_o      = fpnew_pkg::FP8;
-            vectorial_op_o = 1'b1;
-          end
-          fpu_ss_instr_pkg::VFCVT_B_X,
-          fpu_ss_instr_pkg::VFCVT_B_XU: begin
-            fpu_op_o = fpnew_pkg::I2F;
-            op_select_o[0] = fpu_ss_pkg::AccBus;
-            src_fmt_o      = fpnew_pkg::FP8;
-            dst_fmt_o      = fpnew_pkg::FP8;
-            int_fmt_o      = fpnew_pkg::INT8;
-            vectorial_op_o = 1'b1;
-            set_dyn_rm_o   = 1'b1;
-            if (instr_i inside {fpu_ss_instr_pkg::VFCVT_B_XU}) op_mode_o = 1'b1; // upper
-          end
-          // default: 
-        endcase        
+      fpu_ss_instr_pkg::FSQRT_S: begin
+        if(XDivSqrt) begin
+          fpu_op_o = fpnew_pkg::SQRT;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegA;
+        end
       end
-
+      // Vectorial [alternate] Half Precision
+      fpu_ss_instr_pkg::VFSUM_H,
+      fpu_ss_instr_pkg::VFNSUM_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::VSUM;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_H}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFADD_H,
+      fpu_ss_instr_pkg::VFADD_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::ADD;
+          op_select_o[1] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFADD_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSUB_H,
+      fpu_ss_instr_pkg::VFSUB_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o  = fpnew_pkg::ADD;
+          op_select_o[1] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegB;
+          op_mode_o      = 1'b1;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSUB_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMUL_H,
+      fpu_ss_instr_pkg::VFMUL_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::MUL;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP16;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMUL_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMIN_H,
+      fpu_ss_instr_pkg::VFMIN_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::MINMAX;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RNE;
+          src_fmt_o      = fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP16;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMIN_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMAX_H,
+      fpu_ss_instr_pkg::VFMAX_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::MINMAX;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          fpu_rnd_mode_o = fpnew_pkg::RTZ;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMAX_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMAC_H,
+      fpu_ss_instr_pkg::VFMAC_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::FMADD;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMAC_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMRE_H,
+      fpu_ss_instr_pkg::VFMRE_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::FNMSUB;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMRE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSGNJ_H,
+      fpu_ss_instr_pkg::VFSGNJ_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RNE;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSGNJ_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSGNJN_H,
+      fpu_ss_instr_pkg::VFSGNJN_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RTZ;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSGNJN_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSGNJX_H,
+      fpu_ss_instr_pkg::VFSGNJX_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RDN;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSGNJX_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFCPKA_H_S: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CPKAB;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpnew_pkg::FP32;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_S_H,
+      fpu_ss_instr_pkg::VFCVTU_S_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP32;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_S_H}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_H_S,
+      fpu_ss_instr_pkg::VFCVTU_H_S: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpnew_pkg::FP32;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_S}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFDOTPEX_S_H,
+      fpu_ss_instr_pkg::VFDOTPEX_S_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SDOTP;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP32;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_S_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFNDOTPEX_S_H,
+      fpu_ss_instr_pkg::VFNDOTPEX_S_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SDOTP;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          op_mode_o      = 1'b1;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP32;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_S_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSUMEX_S_H,
+      fpu_ss_instr_pkg::VFNSUMEX_S_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::EXVSUM;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          src2_fmt_o     = fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP32;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_S_H}) op_mode_o = 1'b1;
+        end
+      end
+      // Vectorial [alternate] Quarter Precision
+      fpu_ss_instr_pkg::VFSUM_B,
+      fpu_ss_instr_pkg::VFNSUM_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::VSUM;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_B}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFADD_B,
+      fpu_ss_instr_pkg::VFADD_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::ADD;
+          op_select_o[1] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFADD_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSUB_B,
+      fpu_ss_instr_pkg::VFSUB_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o  = fpnew_pkg::ADD;
+          op_select_o[1] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegB;
+          op_mode_o      = 1'b1;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSUB_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMUL_B,
+      fpu_ss_instr_pkg::VFMUL_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::MUL;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMUL_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMIN_B,
+      fpu_ss_instr_pkg::VFMIN_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::MINMAX;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RNE;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMIN_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMAX_B,
+      fpu_ss_instr_pkg::VFMAX_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::MINMAX;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          fpu_rnd_mode_o = fpnew_pkg::RTZ;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMAX_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMAC_B,
+      fpu_ss_instr_pkg::VFMAC_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::FMADD;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMAC_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFMRE_B,
+      fpu_ss_instr_pkg::VFMRE_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::FNMSUB;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFMRE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSGNJ_B,
+      fpu_ss_instr_pkg::VFSGNJ_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RNE;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSGNJ_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSGNJN_B,
+      fpu_ss_instr_pkg::VFSGNJN_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RTZ;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSGNJN_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSGNJX_B,
+      fpu_ss_instr_pkg::VFSGNJX_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o = fpnew_pkg::RDN;
+          src_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFSGNJX_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFCPKA_B_S,
+      fpu_ss_instr_pkg::VFCPKB_B_S: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CPKAB;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpnew_pkg::FP32;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCPKB_B_S}) op_mode_o = 1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_S_B,
+      fpu_ss_instr_pkg::VFCVTU_S_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpnew_pkg::FP32;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_S_B}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_B_S,
+      fpu_ss_instr_pkg::VFCVTU_B_S: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpnew_pkg::FP32;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_S}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_H_H,
+      fpu_ss_instr_pkg::VFCVTU_H_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_H}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_H_B,
+      fpu_ss_instr_pkg::VFCVTU_H_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_H_B}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_B_H,
+      fpu_ss_instr_pkg::VFCVTU_B_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_H}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_B_B,
+      fpu_ss_instr_pkg::VFCVTU_B_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2F;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVTU_B_B}) op_mode_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFDOTPEX_H_B,
+      fpu_ss_instr_pkg::VFDOTPEX_H_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SDOTP;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFNDOTPEX_H_B,
+      fpu_ss_instr_pkg::VFNDOTPEX_H_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SDOTP;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[1] = fpu_ss_pkg::RegB;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          op_mode_o      = 1'b1;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFSUMEX_H_B,
+      fpu_ss_instr_pkg::VFNSUMEX_H_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::EXVSUM;
+          op_select_o[0] = fpu_ss_pkg::RegA;
+          op_select_o[2] = fpu_ss_pkg::RegDest;
+          src_fmt_o      = fpu_fmt_mode.src  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
+          src2_fmt_o     = fpnew_pkg::FP8;
+          dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_H_B}) op_mode_o = 1'b1;
+        end
+      end
+      // Vectorial [alternate] Half Precision
+      fpu_ss_instr_pkg::VFEQ_H,
+      fpu_ss_instr_pkg::VFEQ_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RDN;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFEQ_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFNE_H,
+      fpu_ss_instr_pkg::VFNE_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RDN;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          op_mode_o        = 1'b1;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFLT_H,
+      fpu_ss_instr_pkg::VFLT_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RTZ;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFLT_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFGE_H,
+      fpu_ss_instr_pkg::VFGE_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RTZ;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          op_mode_o        = 1'b1;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFGE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFLE_H,
+      fpu_ss_instr_pkg::VFLE_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RNE;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFLE_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFGT_H,
+      fpu_ss_instr_pkg::VFGT_R_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RNE;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          op_mode_o        = 1'b1;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFGT_R_H}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFCLASS_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CLASSIFY;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          fpu_rnd_mode_o   = fpnew_pkg::RNE;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+        end
+      end
+      fpu_ss_instr_pkg::VFMV_X_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          fpu_rnd_mode_o   = fpnew_pkg::RUP; // passthrough without checking nan-box
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          op_mode_o        = 1'b1; // sign-extend result
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_X_H,
+      fpu_ss_instr_pkg::VFCVT_XU_H: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2I;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          src_fmt_o        = fpnew_pkg::FP16;
+          dst_fmt_o        = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP16ALT;
+            dst_fmt_o      = fpnew_pkg::FP16ALT;
+          end
+          int_fmt_o        = fpnew_pkg::INT16;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          set_dyn_rm_o     = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVT_XU_H}) op_mode_o = 1'b1; // upper
+          end
+        end
+      // Vectorial Quarter Precision
+      fpu_ss_instr_pkg::VFEQ_B,
+      fpu_ss_instr_pkg::VFEQ_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RDN;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFEQ_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFNE_B,
+      fpu_ss_instr_pkg::VFNE_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RDN;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          op_mode_o        = 1'b1;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFNE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFLT_B,
+      fpu_ss_instr_pkg::VFLT_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RTZ;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFLT_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFGE_B,
+      fpu_ss_instr_pkg::VFGE_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RTZ;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          op_mode_o        = 1'b1;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFGE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFLE_B,
+      fpu_ss_instr_pkg::VFLE_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RNE;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFLE_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFGT_B,
+      fpu_ss_instr_pkg::VFGT_R_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CMP;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          op_select_o[1]   = fpu_ss_pkg::RegB;
+          fpu_rnd_mode_o   = fpnew_pkg::RNE;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          op_mode_o        = 1'b1;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          if (instr_i inside {fpu_ss_instr_pkg::VFGT_R_B}) op_select_o[1] = fpu_ss_pkg::RegBRep;
+        end
+      end
+      fpu_ss_instr_pkg::VFCLASS_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::CLASSIFY;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          fpu_rnd_mode_o   = fpnew_pkg::RNE;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+        end
+      end
+      fpu_ss_instr_pkg::VFMV_X_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          fpu_rnd_mode_o   = fpnew_pkg::RUP; // passthrough without checking nan-box
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          op_mode_o        = 1'b1; // sign-extend result
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_X_B,
+      fpu_ss_instr_pkg::VFCVT_XU_B: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::F2I;
+          op_select_o[0]   = fpu_ss_pkg::RegA;
+          src_fmt_o        = fpnew_pkg::FP8;
+          dst_fmt_o        = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.src == 1'b1) begin
+            src_fmt_o      = fpnew_pkg::FP8ALT;
+            dst_fmt_o      = fpnew_pkg::FP8ALT;
+          end
+          int_fmt_o        = fpnew_pkg::INT8;
+          vectorial_op_o   = 1'b1;
+          rd_is_fp_dec       = 1'b0;
+          set_dyn_rm_o     = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVT_XU_B}) op_mode_o = 1'b1; // upper
+        end
+      end
+      // Vectorial Half Precision Floating-Point
+      fpu_ss_instr_pkg::VFMV_H_X: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::AccBus;
+          fpu_rnd_mode_o = fpnew_pkg::RUP; // passthrough without checking nan-box
+          src_fmt_o      = fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.dst == 1'b1) begin
+            src_fmt_o    = fpnew_pkg::FP16ALT;
+            dst_fmt_o    = fpnew_pkg::FP16ALT;
+          end
+          vectorial_op_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_H_X,
+      fpu_ss_instr_pkg::VFCVT_H_XU: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::I2F;
+          op_select_o[0] = fpu_ss_pkg::AccBus;
+          src_fmt_o      = fpnew_pkg::FP16;
+          dst_fmt_o      = fpnew_pkg::FP16;
+          if (fpu_fmt_mode.dst == 1'b1) begin
+            src_fmt_o    = fpnew_pkg::FP16ALT;
+            dst_fmt_o    = fpnew_pkg::FP16ALT;
+          end
+          int_fmt_o      = fpnew_pkg::INT16;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVT_H_XU}) op_mode_o = 1'b1; // upper
+        end
+      end
+      // [Alternate] Quarter Precision Floating-Point
+      fpu_ss_instr_pkg::FMV_B_X: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::AccBus;
+          fpu_rnd_mode_o = fpnew_pkg::RUP; // passthrough without checking nan-box
+          src_fmt_o      = fpnew_pkg::FP8;
+          dst_fmt_o      = fpnew_pkg::FP8;
+          if (fpu_fmt_mode.dst == 1'b1) begin
+            src_fmt_o    = fpnew_pkg::FP8ALT;
+            dst_fmt_o    = fpnew_pkg::FP8ALT;
+          end
+        end
+      end
+      fpu_ss_instr_pkg::FCVT_B_W,
+      fpu_ss_instr_pkg::FCVT_B_WU: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::I2F;
+          op_select_o[0] = fpu_ss_pkg::AccBus;
+          src_fmt_o      = fpnew_pkg::FP8;
+          dst_fmt_o      = fpnew_pkg::FP8;
+          if (instr_i inside {fpu_ss_instr_pkg::FCVT_B_WU}) op_mode_o = 1'b1; // unsigned
+        end
+      end
+      // Vectorial Quarter Precision Floating-Point
+      fpu_ss_instr_pkg::VFMV_B_X: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::SGNJ;
+          op_select_o[0] = fpu_ss_pkg::AccBus;
+          fpu_rnd_mode_o = fpnew_pkg::RUP; // passthrough without checking nan-box
+          src_fmt_o      = fpnew_pkg::FP8;
+          dst_fmt_o      = fpnew_pkg::FP8;
+          vectorial_op_o = 1'b1;
+        end
+      end
+      fpu_ss_instr_pkg::VFCVT_B_X,
+      fpu_ss_instr_pkg::VFCVT_B_XU: begin
+        if(XFVEC) begin
+          fpu_op_o = fpnew_pkg::I2F;
+          op_select_o[0] = fpu_ss_pkg::AccBus;
+          src_fmt_o      = fpnew_pkg::FP8;
+          dst_fmt_o      = fpnew_pkg::FP8;
+          int_fmt_o      = fpnew_pkg::INT8;
+          vectorial_op_o = 1'b1;
+          set_dyn_rm_o   = 1'b1;
+          if (instr_i inside {fpu_ss_instr_pkg::VFCVT_B_XU}) op_mode_o = 1'b1; // upper
+        end
+      end
+      default: begin
+        use_fpu_o = 1'b0;
+        rd_is_fp_dec = 1'b0;
+      end
+    endcase
     // fix round mode for vectors and fp16alt
     if (set_dyn_rm_o) fpu_rnd_mode_o = fpu_rnd_mode_i;
   end

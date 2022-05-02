@@ -30,7 +30,7 @@ module fpu_ss_csr (
 
 );
 
-  // [31:11] unused, [10:8] mode (formats), [7:5] roundmode, [4:0] flags
+  // [31:12] unused, [11:11] stochastic round mode, [10:8] mode (formats), [7:5] roundmode, [4:0] flags
   logic [31:0] fcsr_d, fcsr_q, instr_q;
 
   assign frm_o = fcsr_q[7:5];
@@ -100,6 +100,18 @@ module fpu_ss_csr (
       end
       fpu_ss_instr_pkg::CSRRWI_FSMODEI: begin
         fcsr_d[10:8] = instr_i[17:15];
+      end
+      fpu_ss_instr_pkg::CSRRW_FSSRM: begin
+        fcsr_d[11:11]= csr_data_i[0:0];
+        csr_wb_o    = 1'b1;
+        csr_rdata_o = {31'b0, fcsr_q[11:11]};
+      end
+      fpu_ss_instr_pkg::CSRRS_FRSRM: begin
+        csr_wb_o    = 1'b1;
+        csr_rdata_o = {31'b0, fcsr_q[11:11]};
+      end
+      fpu_ss_instr_pkg::CSRRWI_FSSRMI: begin
+        fcsr_d[11:11] = instr_i[15:15];
       end
       default: begin
         if (fpu_out_valid_i) begin

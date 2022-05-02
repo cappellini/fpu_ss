@@ -33,6 +33,10 @@
   localparam logic [31:0] CSRRS_FRMODE       = 32'b100000000000?????010?????1110011;
   localparam logic [31:0] CSRRWI_FSMODEI     = 32'b100000000000?????101?????1110011;
 
+  localparam logic [31:0] CSRRW_FSSRM        = 32'b100000000001?????001?????1110011;
+  localparam logic [31:0] CSRRS_FRSRM        = 32'b100000000001?????010?????1110011;
+  localparam logic [31:0] CSRRWI_FSSRMI      = 32'b100000000001?????101?????1110011;
+
 
   localparam logic [31:0] BEQ                = 32'b?????????????????000?????1100011;
   localparam logic [31:0] BNE                = 32'b?????????????????001?????1100011;
@@ -892,6 +896,7 @@
   localparam logic [11:0] CSR_FRM = 12'h2;
   localparam logic [11:0] CSR_FCSR = 12'h3;
   localparam logic [11:0] CSR_FMODE = 12'h800;
+  localparam logic [11:0] CSR_FSRM = 12'h801;
   localparam logic [11:0] CSR_CYCLE = 12'hc00;
   localparam logic [11:0] CSR_TIME = 12'hc01;
   localparam logic [11:0] CSR_INSTRET = 12'hc02;
