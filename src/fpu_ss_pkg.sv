@@ -234,7 +234,7 @@ package fpu_ss_pkg;
                   '{default: C_LAT_DOTP}    // DOTP
                   },
       UnitTypes: '{'{default: fpnew_pkg::MERGED},  // FMA
-                  '{default: fpnew_pkg::DISABLED}, // DIVSQRT
+                  '{default: fpnew_pkg::MERGED}, // DIVSQRT
                   '{default: fpnew_pkg::PARALLEL}, // NONCOMP
                   '{default: fpnew_pkg::MERGED},   // CONV
                   '{default: fpnew_pkg::MERGED}},  // DOTP

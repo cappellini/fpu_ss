@@ -273,7 +273,10 @@ module fpu_ss
   // ----------
   // Predecoder
   // ----------
-  fpu_ss_predecoder fpu_ss_predecoder_i (
+  fpu_ss_predecoder #(
+      .XDivSqrt(FPU_IMPLEMENTATION.UnitTypes[1][1] != fpnew_pkg::DISABLED),
+      .XFVEC(FPU_FEATURES.EnableVectors)
+  ) fpu_ss_predecoder_i (
       .prd_req_i(prd_req),
       .prd_rsp_o(prd_rsp)
   );
@@ -316,7 +319,9 @@ module fpu_ss
   // Decoder
   // -------
   fpu_ss_decoder #(
-      .PULP_ZFINX(PULP_ZFINX)
+      .PULP_ZFINX(PULP_ZFINX),
+      .XDivSqrt(FPU_IMPLEMENTATION.UnitTypes[1][1] != fpnew_pkg::DISABLED),
+      .XFVEC(FPU_FEATURES.EnableVectors)
   ) fpu_ss_decoder_i (
       .instr_i       (instr),
       .fpu_rnd_mode_i(fpnew_pkg::roundmode_e'(frm)),
