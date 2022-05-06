@@ -173,7 +173,7 @@ module fpu_ss_controller
     if (FORWARDING) begin
       valid_operands[0] = op_select_i[0] == fpu_ss_pkg::RegA;
       valid_operands[1] = op_select_i[1] == fpu_ss_pkg::RegA | op_select_i[1] == fpu_ss_pkg::RegB;
-      valid_operands[2] = op_select_i[2] == fpu_ss_pkg::RegB | op_select_i[2] == fpu_ss_pkg::RegC;
+      valid_operands[2] = op_select_i[2] == fpu_ss_pkg::RegB | op_select_i[2] == fpu_ss_pkg::RegC | op_select_i[2] == fpu_ss_pkg::RegDest;
       fpu_fwd_o[0] = valid_operands[0] & fpu_out_valid_i & fpu_out_ready_o & rd_is_fp_i & rs1_i == fpr_wb_addr_i;
       fpu_fwd_o[1] = valid_operands[1] & fpu_out_valid_i & fpu_out_ready_o & rd_is_fp_i & rs2_i == fpr_wb_addr_i;
       fpu_fwd_o[2] = valid_operands[2] & fpu_out_valid_i & fpu_out_ready_o & rd_is_fp_i & rs3_i == fpr_wb_addr_i;
