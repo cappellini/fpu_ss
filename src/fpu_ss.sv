@@ -323,24 +323,25 @@ module fpu_ss
       .XDivSqrt(FPU_IMPLEMENTATION.UnitTypes[1][1] != fpnew_pkg::DISABLED),
       .XFVEC(FPU_FEATURES.EnableVectors)
   ) fpu_ss_decoder_i (
-      .instr_i       (instr),
-      .fpu_rnd_mode_i(fpnew_pkg::roundmode_e'(frm)),
-      .fpu_fmt_mode  (fpnew_pkg::fmt_mode_t'(csr_rdata[10:8])),
-      .fpu_op_o      (fpu_op),
-      .op_select_o   (op_select_dec),
-      .fpu_rnd_mode_o(fpu_rnd_mode),
-      .set_dyn_rm_o  (set_dyn_rm),
-      .src_fmt_o     (src_fmt),
-      .src2_fmt_o    (src2_fmt),
-      .dst_fmt_o     (dst_fmt),
-      .int_fmt_o     (int_fmt),
-      .rd_is_fp_o    (rd_is_fp),
-      .vectorial_op_o(vectorial_op),
-      .op_mode_o     (op_mode),
-      .use_fpu_o     (use_fpu),
-      .is_store_o    (is_store),
-      .is_load_o     (is_load),
-      .ls_size_o     (ls_size)
+      .instr_i        (instr),
+      .fpu_rnd_mode_i (fpnew_pkg::roundmode_e'(frm)),
+      .stochastic_rm_i(csr_rdata[11]),
+      .fpu_fmt_mode   (fpnew_pkg::fmt_mode_t'(csr_rdata[10:8])),
+      .fpu_op_o       (fpu_op),
+      .op_select_o    (op_select_dec),
+      .fpu_rnd_mode_o (fpu_rnd_mode),
+      .set_dyn_rm_o   (set_dyn_rm),
+      .src_fmt_o      (src_fmt),
+      .src2_fmt_o     (src2_fmt),
+      .dst_fmt_o      (dst_fmt),
+      .int_fmt_o      (int_fmt),
+      .rd_is_fp_o     (rd_is_fp),
+      .vectorial_op_o (vectorial_op),
+      .op_mode_o      (op_mode),
+      .use_fpu_o      (use_fpu),
+      .is_store_o     (is_store),
+      .is_load_o      (is_load),
+      .ls_size_o      (ls_size)
   );
 
   // ------------------------------

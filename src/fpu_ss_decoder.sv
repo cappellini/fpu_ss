@@ -19,6 +19,7 @@ module fpu_ss_decoder #(
 ) (
     input  logic                   [31:0] instr_i,
     input  fpnew_pkg::roundmode_e         fpu_rnd_mode_i,
+    input  logic                          stochastic_rm_i,
     input  fpnew_pkg::fmt_mode_t          fpu_fmt_mode,
     output fpnew_pkg::operation_e         fpu_op_o,
     output fpu_ss_pkg::op_select_e [ 2:0] op_select_o,
@@ -36,6 +37,7 @@ module fpu_ss_decoder #(
     output logic                          is_load_o,
     output fpu_ss_pkg::ls_size_e          ls_size_o
 );
+  localparam RSR = 3'b101;
   logic rd_is_fp_dec;
 
   assign rd_is_fp_o = PULP_ZFINX ? 1'b0 : rd_is_fp_dec;
@@ -624,7 +626,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpnew_pkg::FP16;
           dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_H}) op_mode_o = 1'b1;
         end
       end
@@ -819,7 +822,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
           dst_fmt_o      = fpnew_pkg::FP32;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_S_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
         end
       end
@@ -835,7 +839,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
           dst_fmt_o      = fpnew_pkg::FP32;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_S_R_H}) op_select_o[2] = fpu_ss_pkg::RegBRep;
         end
       end
@@ -849,7 +854,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpnew_pkg::FP16;
           dst_fmt_o      = fpnew_pkg::FP32;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_S_H}) op_mode_o = 1'b1;
         end
       end
@@ -864,7 +870,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpnew_pkg::FP8;
           dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFNSUM_B}) op_mode_o = 1'b1;
         end
       end
@@ -1109,7 +1116,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
           dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
         end
       end
@@ -1125,7 +1133,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpu_fmt_mode.src2 ? fpnew_pkg::FP8ALT : fpnew_pkg::FP8;
           dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFNDOTPEX_H_R_B}) op_select_o[2] = fpu_ss_pkg::RegBRep;
         end
       end
@@ -1139,7 +1148,8 @@ module fpu_ss_decoder #(
           src2_fmt_o     = fpnew_pkg::FP8;
           dst_fmt_o      = fpu_fmt_mode.dst  ? fpnew_pkg::FP16ALT : fpnew_pkg::FP16;
           vectorial_op_o = 1'b1;
-          set_dyn_rm_o   = 1'b1;
+          set_dyn_rm_o   = ~stochastic_rm_i;
+          fpu_rnd_mode_o = fpnew_pkg::roundmode_e'(RSR); //is later overwritten if stochastic_rm_i == 0
           if (instr_i inside {fpu_ss_instr_pkg::VFNSUMEX_H_B}) op_mode_o = 1'b1;
         end
       end
